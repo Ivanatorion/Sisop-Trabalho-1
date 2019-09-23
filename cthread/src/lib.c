@@ -6,12 +6,16 @@
 #include "../include/cthread.h"
 #include "../include/cdata.h"
 
+//1 = Printa informacoes de criacao/troca de threads no terminal
+//0 = Nao printa nada
+#define DEBUG_MODE 1
+
 int initied = 0;
 int nextTid = 0;
 
-FILA2 fApto, fBloq, fExec;
+FILA2 fApto, fBloq, fExec, fTerm;
 
-ucontext_t econtext;
+ucontext_t econtext; //Contexto do escalonador
 
 void give_cpu_to_next(){
     int done;
@@ -20,6 +24,8 @@ void give_cpu_to_next(){
     TCB_t* executando = ((TCB_t*) GetAtIteratorFila2(&fExec));
     TCB_t* nextThread;
     TCB_t* auxThread;
+
+    //Acha a thread mais prioritaria (menor "prio") e armazena em "nextThread"
     FirstFila2(&fApto);
     nextThread = GetAtIteratorFila2(&fApto);
     while(NextFila2(&fApto) == 0){
@@ -27,10 +33,12 @@ void give_cpu_to_next(){
         if(auxThread->prio < nextThread->prio)
             nextThread = auxThread;
     }
+
+    //Remove a thread antiga da fila de executando e coloca a nova
     DeleteAtIteratorFila2(&fExec);
     AppendFila2(&fExec, nextThread);
 
-    //Remove a Thread da fila de aptos.
+    //Remove a thread escalonada da fila de aptos.
     FirstFila2(&fApto);
     auxThread = GetAtIteratorFila2(&fApto);
     done = 0;
@@ -45,10 +53,11 @@ void give_cpu_to_next(){
         }
     }
 
-    printf("\033[0;31mTrocando %d por %d\n\033[0m", executando->tid, nextThread->tid);
+    if(DEBUG_MODE)
+        printf("\033[0;31mTrocando %d por %d\n\033[0m", executando->tid, nextThread->tid);
 
+    startTimer();
     swapcontext(&(executando->context), &(nextThread->context));
-
 }
 
 void escalonador(){
@@ -57,7 +66,7 @@ void escalonador(){
     if(!initied)
         return;
 
-    //Quando chega aqui, alguma thread acabou a sua execucao
+    //Quando chegar aqui, alguma thread acabou a sua execucao
     int done;
 
     FirstFila2(&fExec);
@@ -82,16 +91,26 @@ void escalonador(){
         AppendFila2(&fApto, auxBloq);
     }
 
+    //Coloca a thread terminada na fila de termino
+    executando->prio = stopTimer();
+    executando->state = PROCST_TERMINO;
+    AppendFila2(&fTerm, executando);
+
+    //Escalona a proxima thread
     give_cpu_to_next();
 }
 
 void init_cThread(){
-    if(CreateFila2(&fApto) || CreateFila2(&fBloq) || CreateFila2(&fExec)){
+    //Cria as filas
+    if(CreateFila2(&fApto) || CreateFila2(&fBloq) || CreateFila2(&fExec) || CreateFila2(&fTerm)){
         printf("Erro ao criar fila.");
+        exit(0);
     }
 
+    //Inicializa o contexto do escalonador
     escalonador();
 
+    //Inicializa o TCB da "main"
     ucontext_t mainContext;
     getcontext(&mainContext);
 
@@ -105,6 +124,7 @@ void init_cThread(){
 
     AppendFila2(&fExec, mainTCB);
 
+    startTimer();
     initied = 1;
 }
 
@@ -131,13 +151,22 @@ int ccreate (void* (*start)(void*), void *arg, int prio) {
 
     AppendFila2(&fApto, threadTCB);
 
-    printf("\033[0;32mCreated Thread %d\n\033[0m", threadTCB->tid);
+    if(DEBUG_MODE)
+        printf("\033[0;32mCriada a Thread %d\n\033[0m", threadTCB->tid);
 
 	return threadTCB->tid;
 }
 
 int cyield(void) {
-	return -1;
+	FirstFila2(&fExec);
+    TCB_t* executando = ((TCB_t*) GetAtIteratorFila2(&fExec));
+
+	executando->prio = stopTimer();
+	executando->state = PROCST_APTO;
+	AppendFila2(&fApto, executando);
+	give_cpu_to_next();
+
+	return 0;
 }
 
 int cjoin(int tid) {
@@ -173,9 +202,11 @@ int cjoin(int tid) {
     if(tW != NULL){
         AppendFila2(&fBloq, executando);
         executando->state = PROCST_BLOQ;
+        executando->prio = stopTimer();
         give_cpu_to_next();
         return 0;
     }
+
     //Procura em Bloq
     FirstFila2(&fBloq);
     done = 0;
@@ -200,6 +231,8 @@ int cjoin(int tid) {
     }
     if(tW != NULL){
         AppendFila2(&fBloq, executando);
+        executando->state = PROCST_BLOQ;
+        executando->prio = stopTimer();
         give_cpu_to_next();
         return 0;
     }
@@ -208,7 +241,17 @@ int cjoin(int tid) {
 }
 
 int csem_init(csem_t *sem, int count) {
-	return -1;
+	sem->fila = (PFILA2) malloc(sizeof(FILA2));
+	if(CreateFila2(sem->fila)){
+        printf("Erro ao criar fila para semaforo");
+        exit(0);
+	}
+	sem->count = count;
+
+	if(DEBUG_MODE)
+        printf("\033[0;33mInicializado semaforo com count: %d\n\033[0m", sem->count);
+
+	return 0;
 }
 
 int cwait(csem_t *sem) {
@@ -220,7 +263,7 @@ int csignal(csem_t *sem) {
 }
 
 int cidentify (char *name, int size) {
-	strncpy (name, "Sergio Cechin - 2019/2 - Teste de compilacao.", size);
+	strncpy (name, "Bernardo Hummes - \nIvan Peter Lamb - 287692\nMaria Cecilia - ", size);
 	return 0;
 }
 

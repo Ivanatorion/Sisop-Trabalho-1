@@ -27,7 +27,7 @@ typedef struct s_TCB {
 	/* A PARTIR DESSE PONTO PODEM SER ACRESCENTADOS CAMPOS NECESSÁRIOS AO DESENVOLVIMENTO DA BIBLIOTECA
 	*/
 
-	int waiting_tid;
+	int waiting_tid; //ID da thread que efetuou um cjoin para esperar esta thread (-1 se nenhuma)
 
 } TCB_t;
 
