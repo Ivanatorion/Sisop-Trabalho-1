@@ -16,18 +16,20 @@
 #define	PROCST_TERMINO	3	/* Processo em estado de terminado */
 
 
-typedef struct s_TCB { 
+typedef struct s_TCB {
 	/* OS CAMPOS ABAIXO NÃO PODEM SER ALTERADOS OU REMOVIDOS
 	*/
 	int		tid; 		// identificador da thread
 	int		state;		// estado em que a thread se encontra (CONFORME DEFINES ANTERIORES)
 	int 		prio;		// Prioridade associada a thread
-	ucontext_t 	context;	// contexto de execução da thread (SP, PC, GPRs e recursos) 
-	
+	ucontext_t 	context;	// contexto de execução da thread (SP, PC, GPRs e recursos)
+
 	/* A PARTIR DESSE PONTO PODEM SER ACRESCENTADOS CAMPOS NECESSÁRIOS AO DESENVOLVIMENTO DA BIBLIOTECA
 	*/
-	
-} TCB_t; 
+
+	int waiting_tid;
+
+} TCB_t;
 
 
 #endif
