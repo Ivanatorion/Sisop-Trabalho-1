@@ -17,6 +17,8 @@ BIN_DIR=./bin
 SRC_DIR=./src
 
 all: lib.o
+	rm -rf lib
+	mkdir lib
 	ar crs $(LIB_DIR)/libcthread.a $(BIN_DIR)/*.o
 
 lib.o:
