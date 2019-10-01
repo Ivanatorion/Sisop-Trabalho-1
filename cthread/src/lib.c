@@ -54,7 +54,7 @@ void give_cpu_to_next(){
     }
 
     if(DEBUG_MODE)
-        printf("\033[0;31mTrocando %d por %d\n\033[0m", executando->tid, nextThread->tid);
+        printf("\033[0;31mTrocando %d por %d\n\033[0m", executando->tid, nextThread->tid);    
 
     startTimer();
     
@@ -175,15 +175,12 @@ int cjoin(int tid) {
 
     TCB_t* tW = NULL;
 
-    printf("entrei em join\n");
-
     FirstFila2(&fExec);
     TCB_t* executando = ((TCB_t*) GetAtIteratorFila2(&fExec));
 
     //Procura em aptos
     FirstFila2(&fApto);
     done = 0;
-    printf("procurando em aptos\n");
     while(!done){
         tW = (TCB_t*) GetAtIteratorFila2(&fApto);
         if(tW == NULL)
@@ -212,7 +209,6 @@ int cjoin(int tid) {
     }
 
     //Procura em Bloq
-    printf("procurando em bloq\n");
     FirstFila2(&fBloq);
     done = 0;
     while(!done){
@@ -248,16 +244,14 @@ int cjoin(int tid) {
 void give_res_to_next_sem(csem_t *sem){
     int done;
 
-    FirstFila2(&fExec);
-    TCB_t* executando = ((TCB_t*) GetAtIteratorFila2(&fExec));
     TCB_t* nextThread;
     TCB_t* auxThread;
 
     // Acha a thread mais prioritaria (menor "prio") e armazena em "nextThread"
-    FirstFila2(&(sem->fila));
-    nextThread = GetAtIteratorFila2(&(sem->fila));
+    FirstFila2((PFILA2) &(sem->fila));
+    nextThread = GetAtIteratorFila2((PFILA2) &(sem->fila));
     while(NextFila2(&(sem->fila)) == 0){
-        auxThread = GetAtIteratorFila2(&(sem->fila));
+        auxThread = GetAtIteratorFila2((PFILA2) &(sem->fila));
         if(auxThread->prio < nextThread->prio)
             nextThread = auxThread;
     }
@@ -275,8 +269,8 @@ void give_res_to_next_sem(csem_t *sem){
             DeleteAtIteratorFila2(&(sem->fila));
         }
         else{
-            NextFila2(&(sem->fila));
-            auxThread = GetAtIteratorFila2(&(sem->fila));
+            NextFila2((PFILA2) &(sem->fila));
+            auxThread = GetAtIteratorFila2((PFILA2) &(sem->fila));
         }
     }
     // Remove a thread mais prioritaria da fila de bloqueados.
@@ -286,16 +280,16 @@ void give_res_to_next_sem(csem_t *sem){
     while(done == 0){
         if(auxThread->tid == nextThread->tid){
             done = 1;
-            DeleteAtIteratorFila2(&fBloq);
+            DeleteAtIteratorFila2((PFILA2) &fBloq);
         }
         else{
             NextFila2(&fBloq);
-            auxThread = GetAtIteratorFila2(&fBloq);
+            auxThread = GetAtIteratorFila2((PFILA2) &fBloq);
         }
     }
 
     if(DEBUG_MODE)
-        printf("\033[0;31Passando %d para apto e removendo de bloq e fila do sem\n\033[0m", nextThread->tid);
+        printf("\033[0;33mPassando %d para apto e removendo de bloq e fila do sem\n\033[0m", nextThread->tid);
 
     startTimer();
     
@@ -320,11 +314,13 @@ int cwait(csem_t *sem) {
     FirstFila2(&fExec);
     TCB_t* executando = ((TCB_t*) GetAtIteratorFila2(&fExec));
     
-    printf("entrou no wait\n");
+    if(DEBUG_MODE)
+            printf("\033[0;33mEntrou no wait\n\033[0m");
     
     if (sem->count <= 0)
     {
-        printf("nao tem recurso (primeiro caso)\n");
+        if(DEBUG_MODE)
+            printf("Nao tem recurso no semaforo %p\n", sem);
     
         sem->count--; // decrementa count
         AppendFila2(&fBloq, executando); // coloca a thread em bloqueado
@@ -335,7 +331,8 @@ int cwait(csem_t *sem) {
     }
     else
     {
-        printf("tem recurso e so libera\n");
+        if(DEBUG_MODE)
+            printf("Tem recurso no semaforo %p\n", sem);
     
         sem->count--; // decrementa count
         //da a cpu pra ele e eras isso, ou seja, deixa como ta
@@ -347,19 +344,23 @@ int cwait(csem_t *sem) {
 
 int csignal(csem_t *sem) {
 
-    printf("entrou no csignal");
+    if(DEBUG_MODE)
+        printf("\033[0;33mEntrou no signal\n\033[0m");
 
     sem->count++; // incrementa count
     if (FirstFila2(&(sem->fila)) == 0) // se fila nao for vazia
     {
-        printf("fila nao eh vazia (primeiro caso)\n");
+        if(DEBUG_MODE)
+            printf("\033[0;33mFila nao e vazia\n\033[0m");
     
         give_res_to_next_sem(sem);
         return 0;
     }
-    else // fila e vazia
-        printf("fila vazia\n");
+    else{
+        if(DEBUG_MODE)
+            printf("\033[0;33mFila vazia\n\033[0m");
         return 0;
+    }
     
     // se for a thread executando que chamou ela continua
 
@@ -367,7 +368,7 @@ int csignal(csem_t *sem) {
 }
 
 int cidentify (char *name, int size) {
-	strncpy (name, "Bernardo Hummes - \nIvan Peter Lamb - 287692\nMaria Cecilia - ", size);
+	strncpy (name, "Bernardo Hummes - 287689\nIvan Peter Lamb - 287692\nMaria Cecilia - 287703", size);
 	return 0;
 }
 

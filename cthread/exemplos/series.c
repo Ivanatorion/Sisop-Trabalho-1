@@ -15,10 +15,10 @@ void* fatorial(void *i) {
 
      n = *(int *)i;
 
-     for (; n < 1; --n)
+     for (; n > 1; --n)
          fat = n * fat;
 
-     printf("Fatorial de %d:\n", fat);
+     printf("Fatorial de %d: %d\n", *(int *)i, fat);
      return;
 }
 
