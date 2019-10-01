@@ -212,7 +212,6 @@ int cjoin(int tid) {
     }
 
     //Procura em Bloq
-    printf("procurando em bloq\n");
     FirstFila2(&fBloq);
     done = 0;
     while(!done){

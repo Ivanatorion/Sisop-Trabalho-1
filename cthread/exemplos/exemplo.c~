@@ -15,7 +15,7 @@
 
 int teste = 10;
 
-csem_t* sem1 = (csem_t*) malloc(sizeof(csem_t));
+csem_t* sem1 = (csem_t*) malloc(sizeof(csem_t));;
 
 
 void func2() {
