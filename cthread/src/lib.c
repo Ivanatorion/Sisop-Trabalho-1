@@ -8,7 +8,7 @@
 
 //1 = Printa informacoes de criacao/troca de threads no terminal
 //0 = Nao printa nada
-#define DEBUG_MODE 1
+#define DEBUG_MODE 0
 
 int initied = 0;
 int nextTid = 0;
@@ -138,7 +138,7 @@ int ccreate (void* (*start)(void*), void *arg, int prio) {
     threadContext.uc_link = &econtext;
     threadContext.uc_stack.ss_sp = malloc(sizeof(char)*16384);
     threadContext.uc_stack.ss_size = 16384;
-    makecontext(&threadContext, start, 1, arg);
+    makecontext(&threadContext, (void (*)(void))start, 1, arg);
 
     TCB_t* threadTCB;
     threadTCB = (TCB_t*) malloc(sizeof(TCB_t));
@@ -250,7 +250,7 @@ void give_res_to_next_sem(csem_t *sem){
     // Acha a thread mais prioritaria (menor "prio") e armazena em "nextThread"
     FirstFila2((PFILA2) &(sem->fila));
     nextThread = GetAtIteratorFila2((PFILA2) &(sem->fila));
-    while(NextFila2(&(sem->fila)) == 0){
+    while(NextFila2((PFILA2)&(sem->fila)) == 0){
         auxThread = GetAtIteratorFila2((PFILA2) &(sem->fila));
         if(auxThread->prio < nextThread->prio)
             nextThread = auxThread;
@@ -260,13 +260,13 @@ void give_res_to_next_sem(csem_t *sem){
     AppendFila2(&fApto, nextThread);
 
     // Remove a thread mais prioritaria da fila de esperando pelo recurso.
-    FirstFila2(&(sem->fila));
-    auxThread = GetAtIteratorFila2(&(sem->fila));
+    FirstFila2((PFILA2)&(sem->fila));
+    auxThread = GetAtIteratorFila2((PFILA2)&(sem->fila));
     done = 0;
     while(done == 0){
         if(auxThread->tid == nextThread->tid){
             done = 1;
-            DeleteAtIteratorFila2(&(sem->fila));
+            DeleteAtIteratorFila2((PFILA2)&(sem->fila));
         }
         else{
             NextFila2((PFILA2) &(sem->fila));
@@ -324,7 +324,7 @@ int cwait(csem_t *sem) {
     
         sem->count--; // decrementa count
         AppendFila2(&fBloq, executando); // coloca a thread em bloqueado
-        AppendFila2(&(sem->fila), executando); // bota na fila pro recurso
+        AppendFila2((PFILA2)&(sem->fila), executando); // bota na fila pro recurso
         give_cpu_to_next();
         
         return 0;
@@ -348,7 +348,7 @@ int csignal(csem_t *sem) {
         printf("\033[0;33mEntrou no signal\n\033[0m");
 
     sem->count++; // incrementa count
-    if (FirstFila2(&(sem->fila)) == 0) // se fila nao for vazia
+    if (FirstFila2((PFILA2)&(sem->fila)) == 0) // se fila nao for vazia
     {
         if(DEBUG_MODE)
             printf("\033[0;33mFila nao e vazia\n\033[0m");
